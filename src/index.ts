@@ -21,4 +21,5 @@ Available endpoints:
 export default {
   port: PORT,
   fetch: app.fetch,
+  idleTimeout: 120, // AI 生成可能需要较长时间
 };
