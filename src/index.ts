@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { intro, outro, text, spinner, isCancel, cancel } from "@clack/prompts";
 import pc from "picocolors";
 import { resolve } from "path";
