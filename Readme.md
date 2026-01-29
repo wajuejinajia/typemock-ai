@@ -6,6 +6,8 @@
 
 > **Type is Truth.** AI-powered Mock Data Generator that understands your TypeScript interfaces and JSDoc semantics.
 
+English | [简体中文](./README.zh-CN.md)
+
 ## Features
 
 - **Type-to-Mock** - Automatically parse TypeScript interfaces and generate matching mock data
