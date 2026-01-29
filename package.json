@@ -10,6 +10,8 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "hono": "^4.11.7",
+    "openai": "^6.17.0",
     "ts-morph": "^27.0.2"
   }
 }

@@ -1,34 +1,24 @@
-import { extractInterfaceSchema, extractAllInterfaceSchemas } from "./core/parser";
-import { resolve } from "path";
+import app from "./server";
 
-// 获取 demo.ts 的绝对路径
-const demoFilePath = resolve(import.meta.dir, "../examples/demo.ts");
+const PORT = process.env.PORT || 3000;
 
-console.log("=".repeat(60));
-console.log("TypeMock AI - AST Parser Demo");
-console.log("=".repeat(60));
-console.log(`\nParsing file: ${demoFilePath}\n`);
+console.log(`
+╔════════════════════════════════════════════════════════════╗
+║                      TypeMock AI                           ║
+║           AI-Powered Mock Data Generator                   ║
+╚════════════════════════════════════════════════════════════╝
+`);
 
-// 提取 UserProfile 接口
-console.log("-".repeat(60));
-console.log("Extracting UserProfile interface...");
-console.log("-".repeat(60));
+console.log(`Server running at http://localhost:${PORT}`);
+console.log(`
+Available endpoints:
+  GET  /                         - API 信息
+  GET  /api/interfaces           - 列出所有 Interface
+  GET  /api/mock/:interfaceName  - 生成 Mock 数据
+  GET  /api/mock/:interfaceName?force=true - 强制刷新
+`);
 
-const userProfileSchema = extractInterfaceSchema(demoFilePath, "UserProfile");
-
-if (userProfileSchema) {
-  console.log("\nInterface Schema:");
-  console.log(JSON.stringify(userProfileSchema, null, 2));
-}
-
-// 提取所有接口
-console.log("\n" + "=".repeat(60));
-console.log("Extracting all interfaces...");
-console.log("=".repeat(60));
-
-const allSchemas = extractAllInterfaceSchemas(demoFilePath);
-
-console.log(`\nFound ${allSchemas.length} interfaces:\n`);
-allSchemas.forEach((schema) => {
-  console.log(`- ${schema.name}: ${schema.fields.length} fields`);
-});
+export default {
+  port: PORT,
+  fetch: app.fetch,
+};
