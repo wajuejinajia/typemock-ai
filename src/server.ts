@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { resolve } from "path";
+import pc from "picocolors";
 import { extractInterfaceSchema, extractAllInterfaceSchemas } from "./core/parser";
 import { generateMockData } from "./core/generator";
 import * as cache from "./core/cache";
@@ -13,7 +14,38 @@ app.use("/*", cors());
 
 // 默认的 TypeScript 文件路径（可通过环境变量覆盖）
 const DEFAULT_TS_FILE = resolve(import.meta.dir, "../examples/demo.ts");
-const TS_FILE_PATH = process.env.TS_FILE_PATH || DEFAULT_TS_FILE;
+export let tsFilePath = process.env.TS_FILE_PATH || DEFAULT_TS_FILE;
+
+/**
+ * 设置 TypeScript 文件路径
+ */
+export function setTsFilePath(path: string): void {
+  tsFilePath = path;
+}
+
+/**
+ * 打印请求日志
+ */
+function logRequest(method: string, path: string, status: "HIT" | "GEN" | "ERR", interfaceName?: string): void {
+  const timestamp = new Date().toLocaleTimeString();
+  const methodStr = pc.cyan(method.padEnd(6));
+  const pathStr = pc.white(path);
+
+  let statusStr: string;
+  switch (status) {
+    case "HIT":
+      statusStr = pc.green("● CACHE");
+      break;
+    case "GEN":
+      statusStr = pc.blue("◆ AI GEN");
+      break;
+    case "ERR":
+      statusStr = pc.red("✗ ERROR");
+      break;
+  }
+
+  console.log(`${pc.dim(timestamp)} ${methodStr} ${pathStr} ${statusStr}`);
+}
 
 /**
  * 健康检查
@@ -37,7 +69,7 @@ app.get("/", (c) => {
  */
 app.get("/api/interfaces", (c) => {
   try {
-    const schemas = extractAllInterfaceSchemas(TS_FILE_PATH);
+    const schemas = extractAllInterfaceSchemas(tsFilePath);
     const interfaces = schemas.map((s) => ({
       name: s.name,
       docs: s.docs,
@@ -45,7 +77,7 @@ app.get("/api/interfaces", (c) => {
     }));
 
     return c.json({
-      file: TS_FILE_PATH,
+      file: tsFilePath,
       interfaces,
     });
   } catch (error) {
@@ -70,9 +102,10 @@ app.get("/api/mock/:interfaceName", async (c) => {
   const forceRefresh = c.req.query("force") === "true";
 
   // 1. 解析 Schema
-  const schema = extractInterfaceSchema(TS_FILE_PATH, interfaceName);
+  const schema = extractInterfaceSchema(tsFilePath, interfaceName);
 
   if (!schema) {
+    logRequest("GET", `/api/mock/${interfaceName}`, "ERR");
     return c.json(
       {
         error: "Interface 不存在",
@@ -87,6 +120,7 @@ app.get("/api/mock/:interfaceName", async (c) => {
   if (!forceRefresh) {
     const cached = await cache.get(interfaceName);
     if (cached) {
+      logRequest("GET", `/api/mock/${interfaceName}`, "HIT");
       return c.json({
         data: cached,
         meta: {
@@ -99,6 +133,7 @@ app.get("/api/mock/:interfaceName", async (c) => {
 
   // 3. 调用 AI 生成
   try {
+    logRequest("GET", `/api/mock/${interfaceName}`, "GEN");
     const data = await generateMockData(schema);
 
     // 4. 写入缓存
@@ -112,6 +147,7 @@ app.get("/api/mock/:interfaceName", async (c) => {
       },
     });
   } catch (error) {
+    logRequest("GET", `/api/mock/${interfaceName}`, "ERR");
     return c.json(
       {
         error: "生成失败",
@@ -129,6 +165,8 @@ app.delete("/api/cache/:interfaceName", async (c) => {
   const interfaceName = c.req.param("interfaceName");
   await cache.remove(interfaceName);
 
+  console.log(pc.yellow(`🗑  Cache cleared: ${interfaceName}`));
+
   return c.json({
     success: true,
     message: `已清除 "${interfaceName}" 的缓存`,
@@ -140,6 +178,8 @@ app.delete("/api/cache/:interfaceName", async (c) => {
  */
 app.delete("/api/cache", async (c) => {
   await cache.clear();
+
+  console.log(pc.yellow("🗑  All cache cleared"));
 
   return c.json({
     success: true,
